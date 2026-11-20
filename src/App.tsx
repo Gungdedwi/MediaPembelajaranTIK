@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
+  saveCategoryProgress 
+} from './domain/storage/progressStorage.ts';
+import { 
   CURRICULUM_CATEGORIES, 
   DIFFICULTY_CONFIG 
 } from './domain/content/curriculumData.ts';
@@ -177,6 +180,7 @@ export function App() {
   // Quiz completion
   const handleCompleteQuiz = (correctCount: number, totalCount: number) => {
     setQuizResult({ correct: correctCount, total: totalCount });
+    saveCategoryProgress(selectedCategoryId, score, correctCount, totalCount);
     setIsQuizModalOpen(false);
     setScreen('result');
     playWin();

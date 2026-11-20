@@ -29,8 +29,9 @@ export function generateWordsearch(
 ): WordsearchPuzzle {
   const { size, allowedDirections, maxWords } = config;
 
-  // 1. Filter, normalize, and sort words by length descending
-  const selectedTerms = terms.slice(0, maxWords);
+  // 1. Randomize and filter terms so every game features a fresh combination of terms
+  const shuffledTerms = [...terms].sort(() => Math.random() - 0.5);
+  const selectedTerms = shuffledTerms.slice(0, maxWords);
   const normalizedList = selectedTerms
     .map(t => ({
       item: t,

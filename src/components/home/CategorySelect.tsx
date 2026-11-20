@@ -1,4 +1,9 @@
+import { useState, useEffect } from 'react';
 import type { FC, ReactNode } from 'react';
+import { 
+  loadAllProgress, 
+  CategoryProgress 
+} from '../../domain/storage/progressStorage.ts';
 import { 
   CURRICULUM_CATEGORIES, 
   DIFFICULTY_CONFIG 
@@ -13,7 +18,8 @@ import {
   Tv, 
   BookOpen, 
   Play, 
-  GraduationCap
+  GraduationCap,
+  CheckCircle2
 } from 'lucide-react';
 
 interface CategorySelectProps {
@@ -45,6 +51,11 @@ export const CategorySelect: FC<CategorySelectProps> = ({
   onOpenTeacherGuide,
   onStartGame,
 }) => {
+  const [progressMap, setProgressMap] = useState<Record<string, CategoryProgress>>({});
+
+  useEffect(() => {
+    setProgressMap(loadAllProgress());
+  }, []);
   return (
     <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 animate-fade-in">
       {/* Hero Header */}
@@ -112,9 +123,16 @@ export const CategorySelect: FC<CategorySelectProps> = ({
                     <div className="p-2 rounded-xl bg-slate-800 border border-slate-700/60">
                       {CATEGORY_ICONS[cat.iconName] || <Search className="w-6 h-6 text-sky-400" />}
                     </div>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
-                      {cat.terms.length} Istilah
-                    </span>
+                    {progressMap[cat.id]?.isCompleted ? (
+                      <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span>Selesai ({progressMap[cat.id].bestQuizScore}%)</span>
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
+                        {cat.terms.length} Istilah
+                      </span>
+                    )}
                   </div>
                   <h3 className="font-bold text-white text-base mb-1">
                     {cat.title}

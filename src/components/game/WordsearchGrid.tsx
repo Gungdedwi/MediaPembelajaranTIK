@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { FC, TouchEvent } from 'react';
+import type { FC } from 'react';
 import { FoundWord, PlacedWord, SelectionCoord } from '../../domain/content/types.ts';
 import { getSelectionPath, checkWordMatch } from '../../domain/engine/validator.ts';
+import { RotateCcw } from 'lucide-react';
 
 interface WordsearchGridProps {
   grid: string[][];
@@ -23,16 +24,18 @@ export const WordsearchGrid: FC<WordsearchGridProps> = ({
   onPlaySelect
 }) => {
   const size = grid.length;
-  const [startCoord, setStartCoord] = useState<SelectionCoord | null>(null);
-  const [currentCoord, setCurrentCoord] = useState<SelectionCoord | null>(null);
-  const [isMouseDown, setIsMouseDown] = useState(false);
-  const [clickToClickStart, setClickToClickStart] = useState<SelectionCoord | null>(null);
-  const gridContainerRef = useRef<HTMLDivElement>(null);
 
-  // Set of found word IDs for quick duplicate check
+  // Selection states
+  const [startCoord, setStartCoord] = useState<SelectionCoord | null>(null);
+  const [hoverCoord, setHoverCoord] = useState<SelectionCoord | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [wrongSelectionCoords, setWrongSelectionCoords] = useState<string[]>([]);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Set of found word IDs
   const foundWordIds = new Set(foundWords.map(w => w.id));
 
-  // Pre-calculate cell found styling
+  // Pre-calculate found cell map
   const cellFoundMap = new Map<string, string>();
   for (const found of foundWords) {
     for (const c of found.coordinates) {
@@ -43,150 +46,176 @@ export const WordsearchGrid: FC<WordsearchGridProps> = ({
     }
   }
 
-  // Active selected path calculation
-  const activeCoord = currentCoord || clickToClickStart;
-  const activePath = (startCoord && activeCoord)
-    ? getSelectionPath(startCoord, activeCoord, grid)
-    : (clickToClickStart ? { isValidLine: true, coordinates: [clickToClickStart], selectedText: grid[clickToClickStart.row][clickToClickStart.col] } : null);
+  // Active path calculation
+  const activePath = (startCoord && hoverCoord)
+    ? getSelectionPath(startCoord, hoverCoord, grid)
+    : (startCoord ? { isValidLine: true, coordinates: [startCoord], selectedText: grid[startCoord.row]?.[startCoord.col] || '' } : null);
 
   const activeCoordKeys = new Set(
     activePath?.coordinates.map(c => `${c.row}-${c.col}`) || []
   );
 
-  // Commit selection
-  const commitSelection = useCallback((start: SelectionCoord, end: SelectionCoord) => {
+  // Validate and submit selection
+  const submitSelection = useCallback((start: SelectionCoord, end: SelectionCoord) => {
+    // Single cell selection is ignored
+    if (start.row === end.row && start.col === end.col) {
+      return;
+    }
+
     const path = getSelectionPath(start, end, grid);
-    if (!path.isValidLine || path.coordinates.length === 0) {
-      return false;
+    if (!path.isValidLine || path.coordinates.length < 2) {
+      return;
     }
 
     const match = checkWordMatch(path.coordinates, placedWords, foundWordIds);
     if (match.isMatch && match.matchedWord && !match.isAlreadyFound) {
+      // Word found!
       onWordFound(match.matchedWord);
-      return true;
+      setStartCoord(null);
+      setHoverCoord(null);
+      setIsDragging(false);
+    } else {
+      // Not a match: show visual feedback (red flash for 500ms)
+      const wrongKeys = path.coordinates.map(c => `${c.row}-${c.col}`);
+      setWrongSelectionCoords(wrongKeys);
+      setTimeout(() => {
+        setWrongSelectionCoords([]);
+      }, 500);
+      setStartCoord(null);
+      setHoverCoord(null);
+      setIsDragging(false);
     }
-    return false;
   }, [grid, placedWords, foundWordIds, onWordFound]);
 
-  // Global mouse up handler so drag doesn't get stuck if released outside grid
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isMouseDown && startCoord && currentCoord) {
-        commitSelection(startCoord, currentCoord);
-      }
-      setIsMouseDown(false);
-      setStartCoord(null);
-      setCurrentCoord(null);
-    };
-
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, [isMouseDown, startCoord, currentCoord, commitSelection]);
-
-  // Handle Mouse Drag Start
-  const handleMouseDown = (row: number, col: number) => {
+  // Pointer Down (Mouse or Touch)
+  const handlePointerDown = (row: number, col: number, e: React.PointerEvent) => {
     if (isPaused) return;
-    onPlaySelect();
-    setIsMouseDown(true);
-    setStartCoord({ row, col });
-    setCurrentCoord({ row, col });
-    setClickToClickStart(null); // Clear click-to-click mode if dragging
-  };
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
 
-  // Handle Mouse Drag Over
-  const handleMouseEnter = (row: number, col: number) => {
-    if (isPaused || !isMouseDown || !startCoord) return;
-    if (currentCoord?.row !== row || currentCoord?.col !== col) {
-      setCurrentCoord({ row, col });
-      onPlaySelect();
-    }
-  };
-
-  // Handle Click-to-Click Selection (Alternative mode for touch/projector)
-  const handleCellClick = (row: number, col: number) => {
-    if (isPaused || isMouseDown) return;
-
-    if (!clickToClickStart) {
-      setClickToClickStart({ row, col });
+    if (!startCoord) {
+      // Start a new selection
       setStartCoord({ row, col });
+      setHoverCoord({ row, col });
+      setIsDragging(true);
       onPlaySelect();
     } else {
-      // Second click: try commit
-      const success = commitSelection(clickToClickStart, { row, col });
-      if (!success) {
-        onPlaySelect();
+      // Click-to-click mode: second click commits!
+      if (startCoord.row === row && startCoord.col === col) {
+        // Clicking same cell again cancels
+        setStartCoord(null);
+        setHoverCoord(null);
+        setIsDragging(false);
+      } else {
+        submitSelection(startCoord, { row, col });
       }
-      setClickToClickStart(null);
-      setStartCoord(null);
-      setCurrentCoord(null);
     }
   };
 
-  // Touch Events for Mobile / Tablet Drag
-  const handleTouchStart = (e: TouchEvent) => {
-    if (isPaused) return;
-    const touch = e.touches[0];
-    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    const row = target?.getAttribute('data-row');
-    const col = target?.getAttribute('data-col');
-
-    if (row !== null && col !== null && row !== undefined && col !== undefined) {
-      const r = parseInt(row, 10);
-      const c = parseInt(col, 10);
-      setIsMouseDown(true);
-      setStartCoord({ row: r, col: c });
-      setCurrentCoord({ row: r, col: c });
+  // Pointer Move / Hover
+  const handlePointerEnter = (row: number, col: number) => {
+    if (isPaused || !startCoord) return;
+    if (hoverCoord?.row !== row || hoverCoord?.col !== col) {
+      setHoverCoord({ row, col });
       onPlaySelect();
     }
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    if (isPaused || !isMouseDown || !startCoord) return;
-    const touch = e.touches[0];
-    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    const row = target?.getAttribute('data-row');
-    const col = target?.getAttribute('data-col');
+  // Handle Dragging Release (Mouse or Touch Up)
+  const handlePointerUp = () => {
+    if (isPaused || !startCoord || !hoverCoord) return;
 
-    if (row !== null && col !== null && row !== undefined && col !== undefined) {
-      const r = parseInt(row, 10);
-      const c = parseInt(col, 10);
-      if (currentCoord?.row !== r || currentCoord?.col !== c) {
-        setCurrentCoord({ row: r, col: c });
+    if (isDragging) {
+      // If dragged to a different cell, commit immediately
+      if (startCoord.row !== hoverCoord.row || startCoord.col !== hoverCoord.col) {
+        submitSelection(startCoord, hoverCoord);
+      } else {
+        // If released on the same cell, stay in click-to-click mode!
+        setIsDragging(false);
       }
     }
   };
 
-  const handleTouchEnd = () => {
-    if (isMouseDown && startCoord && currentCoord) {
-      commitSelection(startCoord, currentCoord);
+  // Global window pointer up listener
+  useEffect(() => {
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => window.removeEventListener('pointerup', handlePointerUp);
+  }, [handlePointerUp]);
+
+  // Touch move element detection for mobile swiping
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isPaused || !startCoord || !isDragging) return;
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const r = el?.getAttribute('data-row');
+    const c = el?.getAttribute('data-col');
+    if (r !== null && c !== null && r !== undefined && c !== undefined) {
+      const row = parseInt(r, 10);
+      const col = parseInt(c, 10);
+      if (hoverCoord?.row !== row || hoverCoord?.col !== col) {
+        setHoverCoord({ row, col });
+      }
     }
-    setIsMouseDown(false);
+  };
+
+  const handleCancelSelection = () => {
     setStartCoord(null);
-    setCurrentCoord(null);
+    setHoverCoord(null);
+    setIsDragging(false);
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center p-2 sm:p-4 bg-slate-900/60 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+    <div className="relative flex flex-col items-center justify-center p-3 sm:p-5 bg-slate-900/80 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden select-none">
       {/* Paused Overlay */}
       {isPaused && (
-        <div className="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
+        <div className="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6">
           <div className="p-4 rounded-full bg-amber-500/20 text-amber-400 mb-3 animate-pulse">
-            <span className="text-2xl font-bold">⏸️</span>
+            <span className="text-3xl font-bold">⏸️</span>
           </div>
           <h3 className="text-xl font-bold text-white mb-1">Permainan Dijeda</h3>
           <p className="text-sm text-slate-300 max-w-xs">
-            Waktu berhenti. Klik tombol Play di bilah atas untuk melanjutkan aktivitas belajar.
+            Waktu permainan dihentikan sementara. Klik tombol Lanjutkan di bilah atas untuk kembali mencari kata.
           </p>
         </div>
       )}
 
-      {/* Grid Table */}
+      {/* Active Word Preview Banner */}
+      <div className="w-full flex items-center justify-between mb-3 px-2 min-h-[36px]">
+        {startCoord && activePath?.selectedText ? (
+          <div className="flex items-center gap-2 bg-sky-950/80 border border-sky-500/50 px-3.5 py-1.5 rounded-xl shadow-md animate-fade-in w-full justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping" />
+              <span className="text-xs text-sky-300 font-semibold uppercase tracking-wider">
+                Kata Dipilih:
+              </span>
+              <span className="text-sm sm:text-base font-extrabold tracking-widest text-white">
+                {activePath.selectedText}
+              </span>
+              <span className="text-xs text-slate-400 font-mono">
+                ({activePath.coordinates.length} huruf)
+              </span>
+            </div>
+            <button
+              onClick={handleCancelSelection}
+              className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+              title="Batalkan pilihan"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Batal</span>
+            </button>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-400 flex items-center gap-2 mx-auto">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>Klik huruf awal lalu klik huruf akhir kata, atau tahan & geser kursor/jari.</span>
+          </div>
+        )}
+      </div>
+
+      {/* Grid Container */}
       <div
-        ref={gridContainerRef}
-        onTouchStart={handleTouchStart}
+        ref={gridRef}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className="grid gap-1 sm:gap-1.5 p-2 sm:p-3 bg-slate-950/90 rounded-xl border border-slate-800 touch-none select-none shadow-inner"
+        className="grid gap-1 sm:gap-1.5 p-2.5 sm:p-4 bg-slate-950 rounded-2xl border-2 border-slate-800 shadow-inner touch-none select-none"
         style={{
           gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`
         }}
@@ -197,6 +226,8 @@ export const WordsearchGrid: FC<WordsearchGridProps> = ({
             const isFound = cellFoundMap.has(cellKey);
             const foundColor = cellFoundMap.get(cellKey);
             const isSelected = activeCoordKeys.has(cellKey);
+            const isStart = startCoord?.row === r && startCoord?.col === c;
+            const isWrong = wrongSelectionCoords.includes(cellKey);
 
             return (
               <button
@@ -204,22 +235,23 @@ export const WordsearchGrid: FC<WordsearchGridProps> = ({
                 type="button"
                 data-row={r}
                 data-col={c}
-                onMouseDown={() => handleMouseDown(r, c)}
-                onMouseEnter={() => handleMouseEnter(r, c)}
-                onClick={() => handleCellClick(r, c)}
+                onPointerDown={(e) => handlePointerDown(r, c, e)}
+                onPointerEnter={() => handlePointerEnter(r, c)}
                 className={`
-                  relative flex items-center justify-center font-bold tracking-wider rounded-lg transition-all duration-100
+                  relative flex items-center justify-center font-bold tracking-wider rounded-lg sm:rounded-xl transition-all duration-100 cursor-pointer select-none
                   ${isPresentationMode 
-                    ? 'w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 text-base sm:text-2xl md:text-3xl' 
-                    : 'w-7 h-7 sm:w-9 sm:h-9 md:w-11 md:h-11 text-xs sm:text-lg md:text-xl'
+                    ? 'w-10 h-10 sm:w-13 sm:h-13 md:w-15 md:h-15 text-lg sm:text-2xl md:text-3xl' 
+                    : 'w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 text-sm sm:text-xl md:text-2xl'
                   }
-                  ${isSelected
-                    ? 'bg-sky-500 text-white shadow-lg ring-2 ring-sky-300 scale-105 z-10'
+                  ${isWrong
+                    ? 'bg-rose-600 text-white animate-pulse ring-2 ring-rose-400'
+                    : isSelected
+                    ? 'bg-sky-500 text-white shadow-lg ring-2 sm:ring-4 ring-sky-300 scale-105 z-10 font-black'
                     : isFound
                     ? `${foundColor} text-white font-extrabold shadow-md`
-                    : 'bg-slate-800/70 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700/50'
+                    : 'bg-slate-800/80 text-slate-100 hover:bg-slate-700 hover:text-white border border-slate-700/60'
                   }
-                  ${clickToClickStart?.row === r && clickToClickStart?.col === c ? 'ring-4 ring-amber-400 animate-pulse' : ''}
+                  ${isStart ? 'ring-4 ring-amber-400 z-20 animate-bounce' : ''}
                 `}
               >
                 {letter}
@@ -229,14 +261,9 @@ export const WordsearchGrid: FC<WordsearchGridProps> = ({
         )}
       </div>
 
-      {/* Selection Mode Guidance */}
-      <div className="mt-3 text-xs text-slate-400 text-center flex items-center gap-2">
-        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
-        <span>
-          {clickToClickStart
-            ? 'Pilih huruf akhir garis lurus...'
-            : 'Tarik mouse/jari atau klik huruf awal lalu huruf akhir.'}
-        </span>
+      {/* Guidance footer */}
+      <div className="mt-3 text-[11px] sm:text-xs text-slate-500 text-center">
+        💡 Kata dapat mendatar, menurun, atau menyilang (diagonal).
       </div>
     </div>
   );
