@@ -10,7 +10,8 @@ import {
   ArrowLeft,
   Clock,
   Award,
-  BookOpen
+  BookOpen,
+  Music
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -20,10 +21,12 @@ interface HeaderProps {
   timerSeconds: number;
   isPaused: boolean;
   isMuted: boolean;
+  isPlayingMusic: boolean;
   isPresentationMode: boolean;
   isFullscreen: boolean;
   onTogglePause: () => void;
   onToggleMute: () => void;
+  onToggleMusic: () => void;
   onTogglePresentationMode: () => void;
   onToggleFullscreen: () => void;
   onOpenTeacherGuide: () => void;
@@ -37,10 +40,12 @@ export const Header: FC<HeaderProps> = ({
   timerSeconds,
   isPaused,
   isMuted,
+  isPlayingMusic,
   isPresentationMode,
   isFullscreen,
   onTogglePause,
   onToggleMute,
+  onToggleMusic,
   onTogglePresentationMode,
   onToggleFullscreen,
   onOpenTeacherGuide,
@@ -127,6 +132,21 @@ export const Header: FC<HeaderProps> = ({
             aria-label={isPaused ? "Lanjutkan" : "Jeda"}
           >
             {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+          </button>
+
+          {/* Background Music Toggle */}
+          <button
+            onClick={onToggleMusic}
+            className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
+              isPlayingMusic 
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-950 font-bold' 
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+            }`}
+            title={isPlayingMusic ? "Matikan Lagu / Musik Latar" : "Nyalakan Lagu / Musik Latar"}
+            aria-label="Musik Latar"
+          >
+            <Music className={`w-4 h-4 ${isPlayingMusic ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline">{isPlayingMusic ? 'Musik Aktif' : 'Musik'}</span>
           </button>
 
           {/* Sound Mute */}

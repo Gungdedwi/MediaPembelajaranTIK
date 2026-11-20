@@ -43,11 +43,19 @@ export const WordBank: FC<WordBankProps> = ({
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+        <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden mb-3">
           <div
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 rounded-full"
             style={{ width: `${progressPercent}%` }}
           />
+        </div>
+
+        {/* Multi-word guidance banner */}
+        <div className="px-3 py-2 rounded-xl bg-amber-950/40 border border-amber-600/40 text-[11px] sm:text-xs text-amber-200 flex items-start gap-2 leading-relaxed">
+          <span className="text-sm shrink-0">💡</span>
+          <span>
+            <strong>Aturan Pencarian:</strong> Kata majemuk dicari <strong>tanpa spasi</strong> (contoh: <em>KATA KUNCI</em> dicari sebagai <em>KATAKUNCI</em>).
+          </span>
         </div>
       </div>
 
@@ -71,14 +79,21 @@ export const WordBank: FC<WordBankProps> = ({
                 ) : (
                   <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
                 )}
-                <span
-                  className={`font-semibold tracking-wide truncate ${
-                    isPresentationMode ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
-                  } ${isFound ? 'line-through text-slate-400' : 'text-white'}`}
-                  title={item.term}
-                >
-                  {item.term}
-                </span>
+                <div className="flex flex-col min-w-0">
+                  <span
+                    className={`font-semibold tracking-wide truncate ${
+                      isPresentationMode ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
+                    } ${isFound ? 'line-through text-slate-400' : 'text-white'}`}
+                    title={item.term}
+                  >
+                    {item.term}
+                  </span>
+                  {item.term.includes(' ') && !isFound && (
+                    <span className="text-[10px] sm:text-[11px] text-amber-300/90 font-mono font-medium">
+                      (Cari: {item.normalized})
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-1 shrink-0">

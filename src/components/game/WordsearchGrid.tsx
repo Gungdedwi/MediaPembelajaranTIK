@@ -55,6 +55,13 @@ export const WordsearchGrid: FC<WordsearchGridProps> = ({
     activePath?.coordinates.map(c => `${c.row}-${c.col}`) || []
   );
 
+  // Real-time matching preview for target words
+  const currentSelectedText = activePath?.selectedText || '';
+  const currentReversedText = currentSelectedText.split('').reverse().join('');
+  const matchedTargetTerm = placedWords.find(
+    w => (w.normalized === currentSelectedText || w.normalized === currentReversedText) && !foundWordIds.has(w.id)
+  );
+
   // Validate and submit selection
   const submitSelection = useCallback((start: SelectionCoord, end: SelectionCoord) => {
     // Single cell selection is ignored
@@ -190,9 +197,15 @@ export const WordsearchGrid: FC<WordsearchGridProps> = ({
               <span className="text-sm sm:text-base font-extrabold tracking-widest text-white">
                 {activePath.selectedText}
               </span>
-              <span className="text-xs text-slate-400 font-mono">
-                ({activePath.coordinates.length} huruf)
-              </span>
+              {matchedTargetTerm ? (
+                <span className="text-xs text-emerald-300 font-bold bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-700 animate-pulse">
+                  ✓ Cocok: "{matchedTargetTerm.term}"
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400 font-mono">
+                  ({activePath.coordinates.length} huruf)
+                </span>
+              )}
             </div>
             <button
               onClick={handleCancelSelection}

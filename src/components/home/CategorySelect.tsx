@@ -19,16 +19,19 @@ import {
   BookOpen, 
   Play, 
   GraduationCap,
-  CheckCircle2
+  CheckCircle2,
+  Music
 } from 'lucide-react';
 
 interface CategorySelectProps {
   selectedCategoryId: string;
   selectedDifficulty: Difficulty;
   isPresentationMode: boolean;
+  isPlayingMusic: boolean;
   onSelectCategory: (id: string) => void;
   onSelectDifficulty: (diff: Difficulty) => void;
   onTogglePresentationMode: () => void;
+  onToggleMusic: () => void;
   onOpenTeacherGuide: () => void;
   onStartGame: () => void;
 }
@@ -45,9 +48,11 @@ export const CategorySelect: FC<CategorySelectProps> = ({
   selectedCategoryId,
   selectedDifficulty,
   isPresentationMode,
+  isPlayingMusic,
   onSelectCategory,
   onSelectDifficulty,
   onTogglePresentationMode,
+  onToggleMusic,
   onOpenTeacherGuide,
   onStartGame,
 }) => {
@@ -85,6 +90,19 @@ export const CategorySelect: FC<CategorySelectProps> = ({
           >
             <Tv className="w-4 h-4" />
             <span>Mode Proyektor: {isPresentationMode ? 'AKTIF' : 'NONAKTIF'}</span>
+          </button>
+
+          <button
+            onClick={onToggleMusic}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              isPlayingMusic
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-950'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+            }`}
+            title="Nyalakan / Matikan Lagu"
+          >
+            <Music className={`w-4 h-4 ${isPlayingMusic ? 'animate-bounce' : ''}`} />
+            <span>Lagu: {isPlayingMusic ? 'ON' : 'OFF'}</span>
           </button>
         </div>
 

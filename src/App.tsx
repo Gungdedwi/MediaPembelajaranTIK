@@ -16,6 +16,7 @@ import {
 } from './domain/content/types.ts';
 import { generateWordsearch } from './domain/engine/generator.ts';
 import { useSoundEffect } from './hooks/useSoundEffect.ts';
+import { useBackgroundMusic } from './hooks/useBackgroundMusic.ts';
 import { Header } from './components/layout/Header.tsx';
 import { WordsearchGrid } from './components/game/WordsearchGrid.tsx';
 import { WordBank } from './components/game/WordBank.tsx';
@@ -57,6 +58,9 @@ export function App() {
     playQuizCorrect, 
     playQuizWrong 
   } = useSoundEffect();
+
+  // Background Music Hook
+  const { isPlayingMusic, startMusic, stopMusic, toggleMusic } = useBackgroundMusic();
 
   // Game States
   const [puzzle, setPuzzle] = useState<WordsearchPuzzle | null>(null);
@@ -127,7 +131,8 @@ export function App() {
     setIsPaused(false);
     setIsQuizModalOpen(false);
     setScreen('game');
-  }, [currentCategory, selectedDifficulty]);
+    startMusic();
+  }, [currentCategory, selectedDifficulty, startMusic]);
 
   // Handle word found
   const handleWordFound = (matched: PlacedWord) => {
@@ -200,14 +205,19 @@ export function App() {
             timerSeconds={timerSeconds}
             isPaused={isPaused}
             isMuted={isMuted}
+            isPlayingMusic={isPlayingMusic}
             isPresentationMode={isPresentationMode}
             isFullscreen={isFullscreen}
             onTogglePause={() => setIsPaused(prev => !prev)}
             onToggleMute={toggleMute}
+            onToggleMusic={toggleMusic}
             onTogglePresentationMode={() => setIsPresentationMode(prev => !prev)}
             onToggleFullscreen={toggleFullscreen}
             onOpenTeacherGuide={() => setIsTeacherGuideOpen(true)}
-            onExitGame={() => setScreen('home')}
+            onExitGame={() => {
+              stopMusic();
+              setScreen('home');
+            }}
           />
 
           <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col justify-center">
@@ -247,9 +257,11 @@ export function App() {
             selectedCategoryId={selectedCategoryId}
             selectedDifficulty={selectedDifficulty}
             isPresentationMode={isPresentationMode}
+            isPlayingMusic={isPlayingMusic}
             onSelectCategory={setSelectedCategoryId}
             onSelectDifficulty={setSelectedDifficulty}
             onTogglePresentationMode={() => setIsPresentationMode(prev => !prev)}
+            onToggleMusic={toggleMusic}
             onOpenTeacherGuide={() => setIsTeacherGuideOpen(true)}
             onStartGame={startNewGame}
           />

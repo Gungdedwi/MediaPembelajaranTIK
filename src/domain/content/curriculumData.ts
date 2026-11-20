@@ -494,21 +494,21 @@ export const CURRICULUM_CATEGORIES: CategoryData[] = [
 export const DIFFICULTY_CONFIG = {
   easy: {
     label: 'Mudah',
-    gridSize: 10,
+    gridSize: 14,
     maxWords: 5,
     allowedDirections: ['HORIZONTAL_LR', 'VERTICAL_TB'] as const,
-    description: 'Grid 10×10. Kata hanya mengarah ke kanan dan ke bawah.'
+    description: 'Grid 14×14. Kata hanya mendatar (ke kanan) dan menurun (ke bawah). Istilah 2 kata digabung tanpa spasi.'
   },
   medium: {
     label: 'Sedang',
-    gridSize: 12,
+    gridSize: 14,
     maxWords: 6,
     allowedDirections: ['HORIZONTAL_LR', 'VERTICAL_TB', 'DIAGONAL_TL_BR'] as const,
-    description: 'Grid 12×12. Menambahkan arah diagonal turun.'
+    description: 'Grid 14×14. Menambahkan arah diagonal menyilang ke bawah.'
   },
   hard: {
     label: 'Tantangan',
-    gridSize: 14,
+    gridSize: 15,
     maxWords: 7,
     allowedDirections: [
       'HORIZONTAL_LR',
@@ -520,6 +520,6 @@ export const DIFFICULTY_CONFIG = {
       'DIAGONAL_TR_BL',
       'DIAGONAL_BR_TL'
     ] as const,
-    description: 'Grid 14×14. Seluruh arah aktif, termasuk diagonal dan kata terbalik.'
+    description: 'Grid 15×15. Seluruh 8 arah aktif, termasuk diagonal dan kata terbalik.'
   }
 };
