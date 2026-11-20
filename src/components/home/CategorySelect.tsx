@@ -94,15 +94,15 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 
           <button
             onClick={onToggleMusic}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
               isPlayingMusic
-                ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-950'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-950 ring-2 ring-emerald-300'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
             }`}
-            title="Nyalakan / Matikan Lagu"
+            title="Nyalakan / Matikan Lagu Tema Edukatif"
           >
-            <Music className={`w-4 h-4 ${isPlayingMusic ? 'animate-bounce' : ''}`} />
-            <span>Lagu: {isPlayingMusic ? 'ON' : 'OFF'}</span>
+            <Music className={`w-4 h-4 ${isPlayingMusic ? 'animate-bounce text-slate-950' : 'text-emerald-400'}`} />
+            <span>Lagu Tema: {isPlayingMusic ? 'SEDANG MEMUTAR 🎵' : 'NYALAKAN MUSIK 🎵'}</span>
           </button>
         </div>
 

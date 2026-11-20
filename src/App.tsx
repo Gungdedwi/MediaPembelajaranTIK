@@ -252,7 +252,7 @@ export function App() {
 
       {/* Home Screen View */}
       {screen === 'home' && (
-        <main className="flex-1 flex items-center justify-center py-8">
+        <main className="flex-1 w-full overflow-y-auto py-6 sm:py-8">
           <CategorySelect
             selectedCategoryId={selectedCategoryId}
             selectedDifficulty={selectedDifficulty}
@@ -270,7 +270,7 @@ export function App() {
 
       {/* Result Screen View */}
       {screen === 'result' && (
-        <main className="flex-1 flex items-center justify-center py-8">
+        <main className="flex-1 w-full overflow-y-auto py-6 sm:py-10">
           <ResultScreen
             categoryTitle={currentCategory.title}
             difficultyLabel={DIFFICULTY_CONFIG[selectedDifficulty].label}

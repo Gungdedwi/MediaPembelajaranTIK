@@ -56,7 +56,7 @@ export const ResultScreen: FC<ResultScreenProps> = ({
     : 100;
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 animate-fade-in">
+    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 pb-20 animate-fade-in">
       {/* Top Banner */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-amber-500/20 text-amber-400 mb-3 border border-amber-500/30 shadow-lg shadow-amber-950/40">
